@@ -6,7 +6,7 @@ export type BananaWrapping = {
   observation: string;
   color: string;
   quantity: number;
-  date: Date | Timestamp;
+  date: Date;
   sold: boolean;
 };
 
@@ -16,7 +16,7 @@ export type CacaoSale = {
   description: string;
   unitPrice: number;
   totalValue: number;
-  date: Date | Timestamp;
+  date: Date;
 };
 
 export type BananaSale = {
@@ -25,7 +25,7 @@ export type BananaSale = {
   tapeColor: string;
   unitPrice: number;
   totalPrice: number;
-  date: Date | Timestamp;
+  date: Date;
   wrappingId: string;
 };
 
@@ -34,5 +34,5 @@ export type FertilizerApplication = {
   fertilizerType: string;
   quantity: number;
   notes?: string;
-  date: Date | Timestamp;
+  date: Date;
 }

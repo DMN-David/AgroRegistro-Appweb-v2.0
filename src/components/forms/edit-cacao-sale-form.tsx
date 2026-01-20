@@ -1,15 +1,16 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { useEffect } from 'react';
+import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -20,25 +21,34 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAgroData } from '@/context/agro-data-context';
 import { formatCurrency } from '@/lib/utils';
+import type { CacaoSale } from '@/lib/types';
+import { Timestamp } from 'firebase/firestore';
 
 const formSchema = z.object({
+  date: z.date({ required_error: 'Debe seleccionar una fecha.' }),
   quantity: z.coerce.number().min(1, 'La cantidad debe ser al menos 1.'),
   unitPrice: z.coerce.number().min(0.01, 'El precio unitario debe ser positivo.'),
   totalValue: z.coerce.number(),
   description: z.string().optional(),
 });
 
-export function CacaoSaleForm() {
-  const { addCacaoSale } = useAgroData();
+interface EditCacaoSaleFormProps {
+  sale: CacaoSale;
+  setOpen: (open: boolean) => void;
+}
+
+export function EditCacaoSaleForm({ sale, setOpen }: EditCacaoSaleFormProps) {
+  const { updateCacaoSale } = useAgroData();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      quantity: 0,
-      unitPrice: 0,
-      totalValue: 0,
-      description: '',
+      date: sale.date instanceof Timestamp ? sale.date.toDate() : new Date(sale.date),
+      quantity: sale.quantity,
+      unitPrice: sale.unitPrice,
+      totalValue: sale.totalValue,
+      description: sale.description || '',
     },
   });
 
@@ -50,25 +60,55 @@ export function CacaoSaleForm() {
     form.setValue('totalValue', total);
   }, [quantity, unitPrice, form]);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    addCacaoSale(values);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    await updateCacaoSale(sale.id, values);
     toast({
-      title: 'Venta registrada',
-      description: 'La venta de cacao ha sido guardada.',
+      title: 'Venta actualizada',
+      description: 'La venta de cacao ha sido actualizada.',
     });
-    form.reset();
+    setOpen(false);
   }
+
+  const formatDateForInput = (date: Date): string => {
+    try {
+      return format(date, 'yyyy-MM-dd');
+    } catch (error) {
+      return '';
+    }
+  };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <FormField
+            control={form.control}
+            name="date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Fecha de Venta</FormLabel>
+                <FormControl>
+                    <Input
+                      type="date"
+                      value={field.value ? formatDateForInput(field.value) : ''}
+                      onChange={(e) => {
+                        const dateValue = e.target.value;
+                        const date = new Date(dateValue + 'T00:00:00');
+                        field.onChange(date);
+                      }}
+                      className="w-full"
+                    />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <FormField
             control={form.control}
             name="quantity"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Cantidad (L)</FormLabel>
+                <FormLabel>Cantidad (kg)</FormLabel>
                 <FormControl>
                   <Input type="number" placeholder="e.g., 50" {...field} />
                 </FormControl>
@@ -120,8 +160,13 @@ export function CacaoSaleForm() {
             </FormItem>
           )}
         />
-        <Button type="submit">Guardar Venta</Button>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button type="submit">Guardar Cambios</Button>
+        </div>
       </form>
     </Form>
   );
 }
+
+    

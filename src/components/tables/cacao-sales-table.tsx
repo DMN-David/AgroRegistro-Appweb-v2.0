@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useAgroData } from "@/context/agro-data-context";
@@ -5,13 +6,20 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
+import { Pencil, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { EditCacaoSaleForm } from "../forms/edit-cacao-sale-form";
 
 const ITEMS_PER_PAGE = 10;
 
 export function CacaoSalesTable() {
-    const { cacaoSales } = useAgroData();
+    const { cacaoSales, deleteCacaoSale } = useAgroData();
     const [currentPage, setCurrentPage] = useState(1);
     const [isClient, setIsClient] = useState(false);
+    const [openDialogs, setOpenDialogs] = useState<Record<string, boolean>>({});
+    const { toast } = useToast();
 
     useEffect(() => {
         setIsClient(true);
@@ -25,6 +33,18 @@ export function CacaoSalesTable() {
     const goToPage = (page: number) => {
         setCurrentPage(page);
     }
+    
+    const handleSetOpen = (id: string, open: boolean) => {
+        setOpenDialogs(prev => ({ ...prev, [id]: open }));
+    };
+
+    const handleDelete = async (id: string) => {
+        await deleteCacaoSale(id);
+        toast({
+            title: "Venta eliminada",
+            description: "El registro de la venta de cacao ha sido eliminado.",
+        });
+    }
 
     return (
         <div className="space-y-4">
@@ -36,6 +56,7 @@ export function CacaoSalesTable() {
                         <TableHead>Valor Unitario</TableHead>
                         <TableHead>Valor Total</TableHead>
                         <TableHead>Descripción</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -46,6 +67,40 @@ export function CacaoSalesTable() {
                             <TableCell>{isClient ? formatCurrency(item.unitPrice) : '...'}</TableCell>
                             <TableCell>{isClient ? formatCurrency(item.totalValue) : '...'}</TableCell>
                             <TableCell>{item.description}</TableCell>
+                             <TableCell className="text-right space-x-2">
+                                <Dialog open={openDialogs[item.id] || false} onOpenChange={(open) => handleSetOpen(item.id, open)}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="ghost" size="icon">
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Editar Venta de Cacao</DialogTitle>
+                                        </DialogHeader>
+                                        <EditCacaoSaleForm sale={item} setOpen={(open) => handleSetOpen(item.id, open)} />
+                                    </DialogContent>
+                                </Dialog>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Esta acción no se puede deshacer. Esto eliminará permanentemente el registro.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDelete(item.id)}>Eliminar</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
@@ -65,3 +120,5 @@ export function CacaoSalesTable() {
         </div>
     )
 }
+
+    
