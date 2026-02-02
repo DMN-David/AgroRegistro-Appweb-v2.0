@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useAgroData } from "@/context/agro-data-context";
@@ -11,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { EditBananaSaleForm } from "../forms/edit-banana-sale-form";
+import { Badge } from "../ui/badge";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -33,7 +33,7 @@ export function BananaSalesTable() {
     const goToPage = (page: number) => {
         setCurrentPage(page);
     }
-    
+
     const handleSetOpen = (id: string, open: boolean) => {
         setOpenDialogs(prev => ({ ...prev, [id]: open }));
     };
@@ -52,7 +52,7 @@ export function BananaSalesTable() {
                 <TableHeader>
                     <TableRow>
                         <TableHead>Fecha</TableHead>
-                        <TableHead>Color Cinta</TableHead>
+                        <TableHead>Colores Cinta</TableHead>
                         <TableHead>Cantidad (cajas)</TableHead>
                         <TableHead>Precio Unitario</TableHead>
                         <TableHead>Precio Total</TableHead>
@@ -63,7 +63,13 @@ export function BananaSalesTable() {
                     {currentItems.map((item) => (
                         <TableRow key={item.id}>
                             <TableCell>{isClient ? formatDate(item.date) : '...'}</TableCell>
-                            <TableCell><span className="capitalize">{item.tapeColor}</span></TableCell>
+                            <TableCell>
+                                <div className="flex flex-wrap gap-1">
+                                    {item.tapeColors.map(color => (
+                                        <Badge key={color} variant="secondary" className="capitalize">{color}</Badge>
+                                    ))}
+                                </div>
+                            </TableCell>
                             <TableCell>{item.quantity}</TableCell>
                             <TableCell>{isClient ? formatCurrency(item.unitPrice) : '...'}</TableCell>
                             <TableCell>{isClient ? formatCurrency(item.totalPrice) : '...'}</TableCell>
@@ -91,7 +97,7 @@ export function BananaSalesTable() {
                                         <AlertDialogHeader>
                                             <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                Esta acción no se puede deshacer. Se eliminará el registro de venta y el lote de enfundado asociado volverá a estar disponible.
+                                                Esta acción no se puede deshacer. Se eliminará el registro de venta y los lotes de enfundado asociados volverán a estar disponibles.
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
@@ -105,7 +111,7 @@ export function BananaSalesTable() {
                     ))}
                 </TableBody>
             </Table>
-             <div className="flex justify-center items-center gap-2">
+            <div className="flex justify-center items-center gap-2">
                 {totalPages > 1 && Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                     <Button
                         key={page}
@@ -121,6 +127,5 @@ export function BananaSalesTable() {
     )
 }
 
-    
 
-    
+

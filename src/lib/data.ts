@@ -10,6 +10,8 @@ export const TAPE_COLORS = [
   { value: 'violeta', label: 'Violeta' },
   { value: 'blanco', label: 'Blanco' },
   { value: 'negro', label: 'Negro' },
+  { value: 'gris', label: 'Gris' },
+  { value: 'Plomo', label: 'Plomo' }
 ];
 
 export const initialBananaWrappings: BananaWrapping[] = [
@@ -20,10 +22,8 @@ export const initialCacaoSales: CacaoSale[] = [
     //{ id: 'mock-cs-1', date: new Date(), quantity: 50, unitPrice: 2.5, totalValue: 125, description: 'Venta a granel.' },
 ];
 export const initialBananaSales: BananaSale[] = [
-    //{ id: 'mock-bs-1', date: new Date(), quantity: 80, tapeColor: 'azul', unitPrice: 10, totalPrice: 800, wrappingId: 'mock-bw-2' },
+    //{ id: 'mock-bs-1', date: new Date(), quantity: 80, tapeColors: ['azul'], unitPrice: 10, totalPrice: 800, wrappingIds: ['mock-bw-2'] },
 ];
 export const initialFertilizerApplications: FertilizerApplication[] = [
     //{ id: 'mock-fa-1', date: new Date(), fertilizerType: 'urea', quantity: 20, notes: 'Aplicación post-lluvia.' },
 ];
-
-    

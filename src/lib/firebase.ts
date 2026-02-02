@@ -2,6 +2,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { enableIndexedDbPersistence } from "firebase/firestore";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -19,5 +20,17 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+// 4. AGREGAR AQUÍ LA PERSISTENCIA
+// Esto permite que AgroRegistro guarde datos aunque no haya señal en el campo
+enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code == 'failed-precondition') {
+        // Probablemente tienes varias pestañas abiertas del proyecto
+        console.warn("La persistencia falló: Solo puede haber una pestaña abierta.");
+    } else if (err.code == 'unimplemented') {
+        // El navegador del celular es muy antiguo
+        console.warn("El navegador no soporta persistencia offline.");
+    }
+});
 
 export { db };

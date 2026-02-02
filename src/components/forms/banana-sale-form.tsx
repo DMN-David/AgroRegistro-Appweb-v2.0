@@ -17,27 +17,25 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+} from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useAgroData } from '@/context/agro-data-context';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDate } from '@/lib/utils';
 import type { BananaWrapping } from '@/lib/types';
 
 const formSchema = z.object({
   quantity: z.coerce.number().min(1, 'La cantidad debe ser al menos 1.'),
-  tapeColor: z.string({ required_error: 'Debe seleccionar un color de cinta.' }),
   unitPrice: z.coerce.number().min(0.01, 'El precio unitario debe ser positivo.'),
   totalPrice: z.coerce.number(),
-  wrappingId: z.string()
+  wrappingIds: z.array(z.string()).min(1, 'Debe seleccionar al menos un lote.'),
 });
 
 export function BananaSaleForm() {
-  const { addBananaSale, getAvailableWrappings, bananaWrappings } = useAgroData();
+  const { addBananaSale, getAvailableWrappings } = useAgroData();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -46,27 +44,18 @@ export function BananaSaleForm() {
       quantity: 0,
       unitPrice: 0,
       totalPrice: 0,
+      wrappingIds: [],
     },
   });
 
   const availableWrappings = getAvailableWrappings();
   const quantity = form.watch('quantity');
   const unitPrice = form.watch('unitPrice');
-  const wrappingId = form.watch('wrappingId');
 
   useEffect(() => {
     const total = (quantity || 0) * (unitPrice || 0);
     form.setValue('totalPrice', total);
   }, [quantity, unitPrice, form]);
-
-  useEffect(() => {
-    if (wrappingId) {
-        const selectedWrapping = bananaWrappings.find(w => w.id === wrappingId);
-        if (selectedWrapping) {
-            form.setValue('tapeColor', selectedWrapping.color);
-        }
-    }
-  }, [wrappingId, bananaWrappings, form]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     addBananaSale(values);
@@ -96,32 +85,44 @@ export function BananaSaleForm() {
           />
           <FormField
             control={form.control}
-            name="wrappingId"
+            name="wrappingIds"
             render={({ field }) => (
-              <FormItem className="lg:col-span-1">
-                <FormLabel>Lote de Enfundado</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccione un lote" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
+              <FormItem className="lg:col-span-1 flex flex-col">
+                <FormLabel>Lotes de Enfundado</FormLabel>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <FormControl>
+                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <span className="truncate">
+                        {field.value?.length > 0
+                            ? `${field.value.length} lote(s) seleccionado(s)`
+                            : 'Seleccione uno o más lotes'}
+                        </span>
+                      </Button>
+                    </FormControl>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="start">
                     {availableWrappings.length > 0 ? (
                       availableWrappings.map((wrapping: BananaWrapping) => (
-                        <SelectItem key={wrapping.id} value={wrapping.id}>
-                          {wrapping.quantity} Unidades ({wrapping.color})
-                        </SelectItem>
+                        <DropdownMenuCheckboxItem
+                          key={wrapping.id}
+                          checked={field.value?.includes(wrapping.id)}
+                          onCheckedChange={(checked) => {
+                            return checked
+                              ? field.onChange([...(field.value || []), wrapping.id])
+                              : field.onChange(field.value?.filter((value) => value !== wrapping.id));
+                          }}
+                           onSelect={(e) => e.preventDefault()} // Prevent closing on select
+                        >
+                          cinta {wrapping.color} ({wrapping.quantity} Unidades) - {formatDate(wrapping.date)}  
+                        </DropdownMenuCheckboxItem> //mi propia version de como escoger los lotes
                       ))
-                    ) : (
-                      <SelectItem value="-" disabled>No hay lotes disponibles</SelectItem>
+                     ) : (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">No hay lotes disponibles</div>
                     )}
-                  </SelectContent>
-                </Select>
-                <FormDescription>Lote de enfundado vendido.</FormDescription>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <FormDescription>Lotes de enfundado vendidos.</FormDescription> 
                 <FormMessage />
               </FormItem>
             )}

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,11 +22,12 @@ import { formatCurrency } from '@/lib/utils';
 import type { BananaSale } from '@/lib/types';
 import { Timestamp } from 'firebase/firestore';
 import { Label } from '../ui/label';
+import { Badge } from '../ui/badge';
 
 const formSchema = z.object({
   date: z.date({ required_error: 'Debe seleccionar una fecha.' }),
   quantity: z.coerce.number().min(1, 'La cantidad debe ser al menos 1.'),
-  tapeColor: z.string(),
+  //tapeColor: z.string(),
   unitPrice: z.coerce.number().min(0.01, 'El precio unitario debe ser positivo.'),
   totalPrice: z.coerce.number(),
 });
@@ -46,7 +46,7 @@ export function EditBananaSaleForm({ sale, setOpen }: EditBananaSaleFormProps) {
     defaultValues: {
       date: sale.date instanceof Timestamp ? sale.date.toDate() : new Date(sale.date),
       quantity: sale.quantity,
-      tapeColor: sale.tapeColor,
+      //tapeColor: sale.tapeColor,
       unitPrice: sale.unitPrice,
       totalPrice: sale.totalPrice,
     },
@@ -81,23 +81,23 @@ export function EditBananaSaleForm({ sale, setOpen }: EditBananaSaleFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <FormField
+          <FormField
             control={form.control}
             name="date"
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Fecha de Venta</FormLabel>
                 <FormControl>
-                    <Input
-                      type="date"
-                      value={field.value ? formatDateForInput(field.value) : ''}
-                      onChange={(e) => {
-                        const dateValue = e.target.value;
-                        const date = new Date(dateValue + 'T00:00:00');
-                        field.onChange(date);
-                      }}
-                      className="w-full"
-                    />
+                  <Input
+                    type="date"
+                    value={field.value ? formatDateForInput(field.value) : ''}
+                    onChange={(e) => {
+                      const dateValue = e.target.value;
+                      const date = new Date(dateValue + 'T00:00:00');
+                      field.onChange(date);
+                    }}
+                    className="w-full"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -118,8 +118,12 @@ export function EditBananaSaleForm({ sale, setOpen }: EditBananaSaleFormProps) {
           />
         </div>
         <div className='space-y-2'>
-            <Label>Color de Cinta</Label>
-            <Input type="text" readOnly disabled value={sale.tapeColor} className="capitalize font-bold"/>
+          <Label>Colores de Cinta</Label>
+          <div className="flex flex-wrap gap-1">
+            {sale.tapeColors.map(color => (
+              <Badge key={color} variant="secondary" className="capitalize">{color}</Badge>
+            ))}
+          </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <FormField
@@ -142,7 +146,7 @@ export function EditBananaSaleForm({ sale, setOpen }: EditBananaSaleFormProps) {
               <FormItem>
                 <FormLabel>Precio Total</FormLabel>
                 <FormControl>
-                  <Input type="text" readOnly disabled value={formatCurrency(field.value)} className="font-bold"/>
+                  <Input type="text" readOnly disabled value={formatCurrency(field.value)} className="font-bold" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -158,4 +162,3 @@ export function EditBananaSaleForm({ sale, setOpen }: EditBananaSaleFormProps) {
   );
 }
 
-    

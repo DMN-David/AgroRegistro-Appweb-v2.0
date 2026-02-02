@@ -3,7 +3,7 @@
 import { useAgroData } from "@/context/agro-data-context";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { formatDate } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Button } from "../ui/button";
 import { Pencil, Trash2 } from "lucide-react";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -24,10 +24,14 @@ export function BananaWrappingsTable() {
         setIsClient(true);
     }, []);
 
-    const totalPages = Math.ceil(bananaWrappings.length / ITEMS_PER_PAGE);
+    const availableWrappings = useMemo(() => 
+        bananaWrappings.filter(item => !item.sold)
+    , [bananaWrappings]);
+
+    const totalPages = Math.ceil(availableWrappings.length / ITEMS_PER_PAGE);
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
-    const currentItems = bananaWrappings.slice(startIndex, endIndex);
+    const currentItems = availableWrappings.slice(startIndex, endIndex);
 
     const goToPage = (page: number) => {
         setCurrentPage(page);
@@ -54,7 +58,7 @@ export function BananaWrappingsTable() {
                         <TableHead>Color Cinta</TableHead>
                         <TableHead>Cantidad</TableHead>
                         <TableHead>Observación</TableHead>
-                        <TableHead>Estado</TableHead>
+{/*                        <TableHead>Estado</TableHead>    */}
                         <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -65,11 +69,11 @@ export function BananaWrappingsTable() {
                             <TableCell><span className="capitalize">{item.color}</span></TableCell>
                             <TableCell>{item.quantity}</TableCell>
                             <TableCell>{item.observation}</TableCell>
-                            <TableCell>{item.sold ? 'Vendido' : 'Disponible'}</TableCell>
+{/*                            <TableCell>{item.sold ? 'Vendido' : 'Disponible'}</TableCell>    */}
                             <TableCell className="text-right space-x-2">
                                 <Dialog open={openDialogs[item.id] || false} onOpenChange={(open) => handleSetOpen(item.id, open)}>
                                     <DialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" disabled={item.sold}>
+                                        <Button variant="ghost" size="icon">
                                             <Pencil className="h-4 w-4" />
                                         </Button>
                                     </DialogTrigger>
@@ -82,7 +86,7 @@ export function BananaWrappingsTable() {
                                 </Dialog>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={item.sold}>
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </AlertDialogTrigger>

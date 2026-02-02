@@ -1,5 +1,4 @@
 'use client';
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -108,10 +107,10 @@ export default function ReportesPage() {
       cursorY += 7;
       doc.autoTable({
         startY: cursorY,
-        head: [['Fecha', 'Color Cinta', 'Cantidad (cajas)', 'Precio Total']],
+        head: [['Fecha', 'Colores Cinta', 'Cantidad (cajas)', 'Precio Total']],
         body: filteredBananaSales.map((item: BananaSale) => [
           formatDate(item.date),
-          item.tapeColor,
+          item.tapeColors.join(', '),
           item.quantity,
           formatCurrency(item.totalPrice),
         ]),

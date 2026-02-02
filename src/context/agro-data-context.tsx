@@ -1,20 +1,21 @@
-
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   collection,
   addDoc,
-  getDocs,
+ // getDocs,
   Timestamp,
-  query,
+ // query,
   orderBy,
   updateDoc,
   doc,
   writeBatch,
-  where,
+ // where,
   getDoc,
   deleteDoc,
+  onSnapshot,
+  query,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { BananaWrapping, CacaoSale, BananaSale, FertilizerApplication } from '@/lib/types';
@@ -31,8 +32,8 @@ interface AgroDataContextType {
   addCacaoSale: (sale: Omit<CacaoSale, 'id' | 'date'>) => Promise<void>;
   updateCacaoSale: (id: string, sale: Partial<Omit<CacaoSale, 'id'>>) => Promise<void>;
   deleteCacaoSale: (id: string) => Promise<void>;
-  addBananaSale: (sale: Omit<BananaSale, 'id' | 'date' | 'tapeColor'> & { wrappingId: string }) => Promise<void>;
-  updateBananaSale: (id: string, sale: Partial<Omit<BananaSale, 'id' | 'wrappingId'>>) => Promise<void>;
+  addBananaSale: (sale: Omit<BananaSale, 'id' | 'date' | 'tapeColors'> & { wrappingIds: string[] }) => Promise<void>;
+  updateBananaSale: (id: string, sale: Partial<Omit<BananaSale, 'id' | 'wrappingIds' | 'tapeColors'>>) => Promise<void>;
   deleteBananaSale: (id: string) => Promise<void>;
   addFertilizerApplication: (application: Omit<FertilizerApplication, 'id' | 'date'>) => Promise<void>;
   updateFertilizerApplication: (id: string, application: Partial<Omit<FertilizerApplication, 'id'>>) => Promise<void>;
@@ -53,97 +54,100 @@ export const AgroDataProvider = ({ children }: { children: React.ReactNode }) =>
   const [fertilizerApplications, setFertilizerApplications] = useState<FertilizerApplication[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const collections = {
-        bananaWrappings: collection(db, 'bananaWrappings'),
-        cacaoSales: collection(db, 'cacaoSales'),
-        bananaSales: collection(db, 'bananaSales'),
-        fertilizerApplications: collection(db, 'fertilizerApplications'),
-      };
-
-      const [bananaWrappingsSnap, cacaoSalesSnap, bananaSalesSnap, fertilizerApplicationsSnap] = await Promise.all([
-        getDocs(query(collections.bananaWrappings, orderBy('date', 'asc'))),
-        getDocs(query(collections.cacaoSales, orderBy('date', 'asc'))),
-        getDocs(query(collections.bananaSales, orderBy('date', 'asc'))),
-        getDocs(query(collections.fertilizerApplications, orderBy('date', 'asc'))),
-      ]);
-
-      const bananaWrappingsData = bananaWrappingsSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), date: (doc.data().date as Timestamp).toDate() } as BananaWrapping));
-      if (bananaWrappingsData.length > 0) {
-        setBananaWrappings(bananaWrappingsData);
-      } else {
-        setBananaWrappings(initialBananaWrappings);
-        // One-time write of initial data if collection is empty
-        const batch = writeBatch(db);
-        initialBananaWrappings.forEach(item => {
-            const { id, ...data } = item;
-            const docRef = doc(db, 'bananaWrappings', id);
-            batch.set(docRef, {...data, date: Timestamp.fromDate(data.date as Date)});
-        });
-        await batch.commit();
-      }
-
-
-      const cacaoSalesData = cacaoSalesSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), date: (doc.data().date as Timestamp).toDate() } as CacaoSale));
-      if (cacaoSalesData.length > 0) {
-        setCacaoSales(cacaoSalesData);
-      } else {
-        setCacaoSales(initialCacaoSales);
-        const batch = writeBatch(db);
-        initialCacaoSales.forEach(item => {
-            const { id, ...data } = item;
-            const docRef = doc(db, 'cacaoSales', id);
-            batch.set(docRef, {...data, date: Timestamp.fromDate(data.date as Date)});
-        });
-        await batch.commit();
-      }
-
-      const bananaSalesData = bananaSalesSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), date: (doc.data().date as Timestamp).toDate() } as BananaSale));
-      if(bananaSalesData.length > 0) {
-        setBananaSales(bananaSalesData);
-      } else {
-        setBananaSales(initialBananaSales);
-        const batch = writeBatch(db);
-        initialBananaSales.forEach(item => {
-            const { id, ...data } = item;
-            const docRef = doc(db, 'bananaSales', id);
-            batch.set(docRef, {...data, date: Timestamp.fromDate(data.date as Date)});
-        });
-        await batch.commit();
-      }
-      
-      const fertilizerApplicationsData = fertilizerApplicationsSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), date: (doc.data().date as Timestamp).toDate() } as FertilizerApplication));
-      if(fertilizerApplicationsData.length > 0) {
-        setFertilizerApplications(fertilizerApplicationsData);
-      } else {
-        setFertilizerApplications(initialFertilizerApplications);
-        const batch = writeBatch(db);
-        initialFertilizerApplications.forEach(item => {
-            const { id, ...data } = item;
-            const docRef = doc(db, 'fertilizerApplications', id);
-            batch.set(docRef, {...data, date: Timestamp.fromDate(data.date as Date)});
-        });
-        await batch.commit();
-      }
-
-
-    } catch (error) {
-      console.error("Error fetching data: ", error);
-       // Fallback to initial data if there's an error (e.g., Firebase not configured)
-      setBananaWrappings(initialBananaWrappings);
-      setCacaoSales(initialCacaoSales);
-      setBananaSales(initialBananaSales);
-      setFertilizerApplications(initialFertilizerApplications);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    setLoading(true);
+    const collections = {
+      bananaWrappings: collection(db, 'bananaWrappings'),
+      cacaoSales: collection(db, 'cacaoSales'),
+      bananaSales: collection(db, 'bananaSales'),
+      fertilizerApplications: collection(db, 'fertilizerApplications'),
+    };
+
+    const unsubscribes = [
+      onSnapshot(query(collections.bananaWrappings, orderBy('date', 'asc')), (snapshot) => {
+        if (snapshot.empty) {
+          setBananaWrappings(initialBananaWrappings);
+          const batch = writeBatch(db);
+          initialBananaWrappings.forEach(item => {
+              const { id, ...data } = item;
+              const docRef = doc(db, 'bananaWrappings', id);
+              batch.set(docRef, {...data, date: Timestamp.fromDate(data.date as Date)});
+          });
+          batch.commit();
+        } else {
+          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), date: (doc.data().date as Timestamp).toDate() } as BananaWrapping));
+          setBananaWrappings(data);
+        }
+      }, (error) => {
+        console.error("Error fetching banana wrappings: ", error);
+        setBananaWrappings(initialBananaWrappings);
+      }),
+
+      onSnapshot(query(collections.cacaoSales, orderBy('date', 'asc')), (snapshot) => {
+        if (snapshot.empty) {
+          setCacaoSales(initialCacaoSales);
+          const batch = writeBatch(db);
+          initialCacaoSales.forEach(item => {
+              const { id, ...data } = item;
+              const docRef = doc(db, 'cacaoSales', id);
+              batch.set(docRef, {...data, date: Timestamp.fromDate(data.date as Date)});
+          });
+          batch.commit();
+        } else {
+          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), date: (doc.data().date as Timestamp).toDate() } as CacaoSale));
+          setCacaoSales(data);
+        }
+      }, (error) => {
+        console.error("Error fetching cacao sales: ", error);
+        setCacaoSales(initialCacaoSales);
+      }),
+
+      onSnapshot(query(collections.bananaSales, orderBy('date', 'asc')), (snapshot) => {
+        if (snapshot.empty) {
+          setBananaSales(initialBananaSales);
+          const batch = writeBatch(db);
+          initialBananaSales.forEach(item => {
+              const { id, ...data } = item;
+              const docRef = doc(db, 'bananaSales', id);
+              batch.set(docRef, {...data, date: Timestamp.fromDate(data.date as Date)});
+          });
+          batch.commit();
+        } else {
+          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), date: (doc.data().date as Timestamp).toDate() } as BananaSale));
+          setBananaSales(data);
+        }
+      }, (error) => {
+        console.error("Error fetching banana sales: ", error);
+        setBananaSales(initialBananaSales);
+      }),
+
+      onSnapshot(query(collections.fertilizerApplications, orderBy('date', 'asc')), (snapshot) => {
+        if (snapshot.empty) {
+          setFertilizerApplications(initialFertilizerApplications);
+          const batch = writeBatch(db);
+          initialFertilizerApplications.forEach(item => {
+              const { id, ...data } = item;
+              const docRef = doc(db, 'fertilizerApplications', id);
+              batch.set(docRef, {...data, date: Timestamp.fromDate(data.date as Date)});
+          });
+          batch.commit();
+        } else {
+          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), date: (doc.data().date as Timestamp).toDate() } as FertilizerApplication));
+          setFertilizerApplications(data);
+        }
+      }, (error) => {
+        console.error("Error fetching fertilizer applications: ", error);
+        setFertilizerApplications(initialFertilizerApplications);
+      }),
+    ];
+
+    setLoading(false);
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      unsubscribes.forEach(unsubscribe => unsubscribe());
+    };
+  }, []);
 
   // Banana Wrapping Functions
   const addBananaWrapping = async (wrapping: Omit<BananaWrapping, 'id' | 'date' | 'sold'>) => {
@@ -153,7 +157,6 @@ export const AgroDataProvider = ({ children }: { children: React.ReactNode }) =>
         date: Timestamp.fromDate(new Date()),
         sold: false,
       });
-      fetchData();
     } catch (error) {
       console.error("Error adding banana wrapping: ", error);
     }
@@ -167,7 +170,6 @@ export const AgroDataProvider = ({ children }: { children: React.ReactNode }) =>
 
       const wrappingRef = doc(db, 'bananaWrappings', id);
       await updateDoc(wrappingRef, dataToUpdate);
-      fetchData();
     } catch (error) {
       console.error("Error updating banana wrapping: ", error);
     }
@@ -176,7 +178,6 @@ export const AgroDataProvider = ({ children }: { children: React.ReactNode }) =>
   const deleteBananaWrapping = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'bananaWrappings', id));
-      fetchData();
     } catch (error) {
       console.error("Error deleting banana wrapping: ", error);
     }
@@ -189,7 +190,6 @@ export const AgroDataProvider = ({ children }: { children: React.ReactNode }) =>
         ...sale,
         date: Timestamp.fromDate(new Date()),
       });
-      fetchData();
     } catch (error) {
       console.error("Error adding cacao sale: ", error);
     }
@@ -202,7 +202,6 @@ export const AgroDataProvider = ({ children }: { children: React.ReactNode }) =>
       if (date) dataToUpdate.date = Timestamp.fromDate(date as Date);
 
       await updateDoc(doc(db, 'cacaoSales', id), dataToUpdate);
-      fetchData();
     } catch (error) {
       console.error("Error updating cacao sale: ", error);
     }
@@ -211,49 +210,52 @@ export const AgroDataProvider = ({ children }: { children: React.ReactNode }) =>
   const deleteCacaoSale = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'cacaoSales', id));
-      fetchData();
     } catch (error) {
       console.error("Error deleting cacao sale: ", error);
     }
   };
 
   // Banana Sale Functions
-  const addBananaSale = async (sale: Omit<BananaSale, 'id' | 'date' | 'tapeColor'> & { wrappingId: string }) => {
-    const wrappingRef = doc(db, 'bananaWrappings', sale.wrappingId);
-    const wrappingSnap = await getDoc(wrappingRef);
-
-    if (!wrappingSnap.exists()) {
-      console.error("Wrapping ID not found");
-      return;
+  const addBananaSale = async (sale: Omit<BananaSale, 'id' | 'date' | 'tapeColors'> & { wrappingIds: string[] }) => {
+    if (!sale.wrappingIds || sale.wrappingIds.length === 0) {
+        console.error("No wrapping IDs provided");
+        return;
     }
-    const wrappingData = wrappingSnap.data();
 
     try {
-      const batch = writeBatch(db);
-      const saleRef = doc(collection(db, 'bananaSales'));
-      batch.set(saleRef, {
-        ...sale,
-        tapeColor: wrappingData.color,
-        date: Timestamp.fromDate(new Date()),
-      });
-      
-      batch.update(wrappingRef, { sold: true });
-      
-      await batch.commit();
-      fetchData();
+        const wrappingDocs = await Promise.all(
+            sale.wrappingIds.map(id => getDoc(doc(db, 'bananaWrappings', id)))
+        );
+
+        const tapeColors = wrappingDocs.map(snap => snap.exists() ? snap.data().color : 'unknown');
+
+        const batch = writeBatch(db);
+        const saleRef = doc(collection(db, 'bananaSales'));
+        
+        batch.set(saleRef, {
+            ...sale,
+            tapeColors,
+            date: Timestamp.fromDate(new Date()),
+        });
+
+        sale.wrappingIds.forEach(id => {
+            const wrappingRef = doc(db, 'bananaWrappings', id);
+            batch.update(wrappingRef, { sold: true });
+        });
+        
+        await batch.commit();
     } catch (error) {
-      console.error("Error adding banana sale: ", error);
+        console.error("Error adding banana sale: ", error);
     }
   };
 
-  const updateBananaSale = async (id: string, sale: Partial<Omit<BananaSale, 'id' | 'wrappingId'>>) => {
+  const updateBananaSale = async (id: string, sale: Partial<Omit<BananaSale, 'id' | 'wrappingIds' | 'tapeColors'>>) => {
     try {
       const { date, ...rest } = sale;
       const dataToUpdate: any = { ...rest };
       if (date) dataToUpdate.date = Timestamp.fromDate(date as Date);
 
       await updateDoc(doc(db, 'bananaSales', id), dataToUpdate);
-      fetchData();
     } catch (error) {
       console.error("Error updating banana sale: ", error);
     }
@@ -269,20 +271,19 @@ export const AgroDataProvider = ({ children }: { children: React.ReactNode }) =>
     try {
       const batch = writeBatch(db);
       
-      // 1. Reference to the sale to be deleted
       const saleRef = doc(db, 'bananaSales', id);
       batch.delete(saleRef);
       
-      // 2. Reference to the associated wrapping lot to update it
-      if (saleToDelete.wrappingId) {
-        const wrappingRef = doc(db, 'bananaWrappings', saleToDelete.wrappingId);
-        batch.update(wrappingRef, { sold: false });
+      if (saleToDelete.wrappingIds) {
+          saleToDelete.wrappingIds.forEach(wrappingId => {
+              const wrappingRef = doc(db, 'bananaWrappings', wrappingId);
+              batch.update(wrappingRef, { sold: false });
+          });
       }
 
       await batch.commit();
-      fetchData();
     } catch (error) {
-      console.error("Error deleting banana sale and updating wrapping: ", error);
+      console.error("Error deleting banana sale and updating wrappings: ", error);
     }
   };
 
@@ -293,7 +294,6 @@ export const AgroDataProvider = ({ children }: { children: React.ReactNode }) =>
         ...application,
         date: Timestamp.fromDate(new Date()),
       });
-      fetchData(); 
     } catch (error) {
       console.error("Error adding fertilizer application: ", error);
     }
@@ -306,7 +306,6 @@ export const AgroDataProvider = ({ children }: { children: React.ReactNode }) =>
       if (date) dataToUpdate.date = Timestamp.fromDate(date as Date);
 
       await updateDoc(doc(db, 'fertilizerApplications', id), dataToUpdate);
-      fetchData();
     } catch (error) {
       console.error("Error updating fertilizer application: ", error);
     }
@@ -315,7 +314,6 @@ export const AgroDataProvider = ({ children }: { children: React.ReactNode }) =>
   const deleteFertilizerApplication = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'fertilizerApplications', id));
-      fetchData();
     } catch (error) {
       console.error("Error deleting fertilizer application: ", error);
     }
@@ -369,6 +367,3 @@ export const useAgroData = () => {
   }
   return context;
 };
-
-    
-    

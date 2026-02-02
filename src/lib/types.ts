@@ -22,11 +22,11 @@ export type CacaoSale = {
 export type BananaSale = {
   id: string;
   quantity: number;
-  tapeColor: string;
+  tapeColors: string[];
   unitPrice: number;
   totalPrice: number;
   date: Date;
-  wrappingId: string;
+  wrappingIds: string[];
 };
 
 export type FertilizerApplication = {
